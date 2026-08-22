@@ -1,16 +1,20 @@
 import numpy as np
 from .adam_update import adam_update
 from .relu import relu, relu_derivative
-from .parametres import TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, NB_NEURONES_LAYER1, NB_NEURONES_LAYER2, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
-
-
-TAILLE_SAMPLE = 2 * TAILLE_STATE + 3
+from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
 
 
 class Reseau_neurones:
-    def __init__(self):
+    def __init__(self, nom_fichier, TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_NEURONES_LAYER1, NB_NEURONES_LAYER2):
+        self.nom_fichier = nom_fichier
+        self.NB_ACTIONS_POSSIBLES = NB_ACTIONS_POSSIBLES
+        self.NB_NEURONES_LAYER1 = NB_NEURONES_LAYER1
+        self.NB_NEURONES_LAYER2 = NB_NEURONES_LAYER2
+        self.TAILLE_STATE = TAILLE_STATE
+        self.TAILLE_SAMPLE = 2 * TAILLE_STATE + 3
+
         try:
-            data = np.load('reseau_neurones.npz')
+            data = np.load(nom_fichier)
             self.W1 = data['W1']
             self.W2 = data['W2']
             self.W3 = data['W3']
@@ -26,12 +30,12 @@ class Reseau_neurones:
             self.t_adam = int(data['t_adam'])
 
         except FileNotFoundError:
-            self.W1 = np.random.randn(NB_NEURONES_LAYER1, TAILLE_STATE) * np.sqrt(2 / TAILLE_STATE)  # He init pour ReLU
-            self.W2 = np.random.randn(NB_NEURONES_LAYER2, NB_NEURONES_LAYER1) * np.sqrt(2 / NB_NEURONES_LAYER1)
-            self.W3 = np.random.randn(NB_ACTIONS_POSSIBLES, NB_NEURONES_LAYER2) * np.sqrt(2 / NB_NEURONES_LAYER2)
-            self.B1 = np.zeros(NB_NEURONES_LAYER1)
-            self.B2 = np.zeros(NB_NEURONES_LAYER2)
-            self.B3 = np.zeros(NB_ACTIONS_POSSIBLES)
+            self.W1 = np.random.randn(self.NB_NEURONES_LAYER1, self.TAILLE_STATE) * np.sqrt(2 / self.TAILLE_STATE)  # He init pour ReLU
+            self.W2 = np.random.randn(self.NB_NEURONES_LAYER2, self.NB_NEURONES_LAYER1) * np.sqrt(2 / self.NB_NEURONES_LAYER1)
+            self.W3 = np.random.randn(self.NB_ACTIONS_POSSIBLES, self.NB_NEURONES_LAYER2) * np.sqrt(2 / self.NB_NEURONES_LAYER2)
+            self.B1 = np.zeros(self.NB_NEURONES_LAYER1)
+            self.B2 = np.zeros(self.NB_NEURONES_LAYER2)
+            self.B3 = np.zeros(self.NB_ACTIONS_POSSIBLES)
             self.mW1 = np.zeros_like(self.W1); self.vW1 = np.zeros_like(self.W1)
             self.mW2 = np.zeros_like(self.W2); self.vW2 = np.zeros_like(self.W2)
             self.mW3 = np.zeros_like(self.W3); self.vW3 = np.zeros_like(self.W3)
@@ -40,7 +44,7 @@ class Reseau_neurones:
             self.mB3 = np.zeros_like(self.B3); self.vB3 = np.zeros_like(self.B3)
             self.t_adam = 0
 
-        self.samples = np.zeros((NB_SAMPLES_MAX, TAILLE_SAMPLE), dtype=np.float32)  # 300+300+3
+        self.samples = np.zeros((NB_SAMPLES_MAX, self.TAILLE_SAMPLE), dtype=np.float32)  # 300+300+3
         self.samples_count = 0  # Nombre réel de samples stockés
         self.head = 0  # Index circulaire (tête)
         self.W1_target, self.W2_target, self.W3_target = self.W1.copy(), self.W2.copy(), self.W3.copy()
@@ -70,11 +74,11 @@ class Reseau_neurones:
                 selection = self.samples[indices]
 
                 # --- 1. Extraction des données du batch (vectorisé) ---
-                states1_batch = selection[:, :TAILLE_STATE]
-                states2_batch = selection[:, TAILLE_STATE:2*TAILLE_STATE]
-                actions_batch = selection[:, 2*TAILLE_STATE].astype(int)
-                rewards_batch = selection[:, 2*TAILLE_STATE+1]
-                terminal_states_batch = selection[:, 2*TAILLE_STATE+2].astype(bool)
+                states1_batch = selection[:, :self.TAILLE_STATE]
+                states2_batch = selection[:, self.TAILLE_STATE:2*self.TAILLE_STATE]
+                actions_batch = selection[:, 2*self.TAILLE_STATE].astype(int)
+                rewards_batch = selection[:, 2*self.TAILLE_STATE+1]
+                terminal_states_batch = selection[:, 2*self.TAILLE_STATE+2].astype(bool)
 
                 # --- 2. Forward Pass pour Q_target (réseau cible) ---
                 Q_target = np.zeros(TAILLE_BATCHS)
@@ -112,19 +116,19 @@ class Reseau_neurones:
                     DELTA_HUBER_LOSS * np.sign(erreur)
                 )
 
-                delta3 = np.zeros((TAILLE_BATCHS, NB_ACTIONS_POSSIBLES))
+                delta3 = np.zeros((TAILLE_BATCHS, self.NB_ACTIONS_POSSIBLES))
                 delta3[np.arange(TAILLE_BATCHS), actions_batch - 1] = gradientaC
 
                 delta2 = (delta3 @ self.W3) * relu_derivative(Z2_s1)
                 delta1 = (delta2 @ self.W2) * relu_derivative(Z1_s1)
 
                 # Gradients pour W1, W2, B1, B2
-                dW1 = delta1.T @ states1_batch
-                dW2 = delta2.T @ A1_s1
-                dW3 = delta3.T @ A2_s1
-                dB1 = np.sum(delta1, axis=0)
-                dB2 = np.sum(delta2, axis=0)
-                dB3 = np.sum(delta3, axis=0)
+                dW1 = delta1.T @ states1_batch / TAILLE_BATCHS
+                dW2 = delta2.T @ A1_s1 / TAILLE_BATCHS
+                dW3 = delta3.T @ A2_s1 / TAILLE_BATCHS
+                dB1 = np.sum(delta1, axis=0) / TAILLE_BATCHS
+                dB2 = np.sum(delta2, axis=0) / TAILLE_BATCHS
+                dB3 = np.sum(delta3, axis=0) / TAILLE_BATCHS
                 norme = np.sqrt(
                     np.sum(dW1**2) +
                     np.sum(dW2**2) +
@@ -144,12 +148,12 @@ class Reseau_neurones:
                 
                 # --- 5. Mise à jour des poids ---
                 self.t_adam += 1
-                adam_update(self.W1, dW1 / TAILLE_BATCHS, self.mW1, self.vW1, self.t_adam, learning_rate)
-                adam_update(self.W2, dW2 / TAILLE_BATCHS, self.mW2, self.vW2, self.t_adam, learning_rate)
-                adam_update(self.W3, dW3 / TAILLE_BATCHS, self.mW3, self.vW3, self.t_adam, learning_rate)
-                adam_update(self.B1, dB1 / TAILLE_BATCHS, self.mB1, self.vB1, self.t_adam, learning_rate)
-                adam_update(self.B2, dB2 / TAILLE_BATCHS, self.mB2, self.vB2, self.t_adam, learning_rate)
-                adam_update(self.B3, dB3 / TAILLE_BATCHS, self.mB3, self.vB3, self.t_adam, learning_rate)
+                adam_update(self.W1, dW1, self.mW1, self.vW1, self.t_adam, learning_rate)
+                adam_update(self.W2, dW2, self.mW2, self.vW2, self.t_adam, learning_rate)
+                adam_update(self.W3, dW3, self.mW3, self.vW3, self.t_adam, learning_rate)
+                adam_update(self.B1, dB1, self.mB1, self.vB1, self.t_adam, learning_rate)
+                adam_update(self.B2, dB2, self.mB2, self.vB2, self.t_adam, learning_rate)
+                adam_update(self.B3, dB3, self.mB3, self.vB3, self.t_adam, learning_rate)
 
                 # Mise à jour du réseau cible
                 self.ct_majs_reseau += 1
@@ -159,5 +163,5 @@ class Reseau_neurones:
 
 
                 if self.ct_majs_reseau % PERIODE_STOCKAGE_PC == 0:
-                    np.savez("reseau_neurones.npz", W1=self.W1, W2=self.W2, W3=self.W3, B1=self.B1, B2=self.B2, B3=self.B3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
-                    print(f"partie : {numero_partie}   Poids, biais exportés dans reseau_neurones.npz")
+                    np.savez(self.nom_fichier, W1=self.W1, W2=self.W2, W3=self.W3, B1=self.B1, B2=self.B2, B3=self.B3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
+                    print(f"partie : {numero_partie}   Poids, biais exportés dans {self.nom_fichier}")

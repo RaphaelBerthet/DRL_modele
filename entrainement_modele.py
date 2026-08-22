@@ -1,6 +1,6 @@
 from entrainement_reseau_objets_utiles.build_state import build_state
 from entrainement_reseau_objets_utiles.entrainement_reseau_neurones import Reseau_neurones
-from entrainement_reseau_objets_utiles.parametres import TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_PARTIES, p_debut, p_fin
+from entrainement_reseau_objets_utiles.parametres import NB_NEURONES_LAYER1, NB_NEURONES_LAYER2, TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_PARTIES, p_debut, p_fin
 import random
 import numpy as np
 
@@ -32,7 +32,7 @@ def executer_action(action):
 
 
 def entrainer(nb_parties=NB_PARTIES):
-    reseau_neurones = Reseau_neurones()
+    reseau_neurones = Reseau_neurones("reseau_neurones.npz", TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_NEURONES_LAYER1, NB_NEURONES_LAYER2)
     for partie in range(nb_parties):
         p = p_debut - (p_debut - p_fin) * partie / nb_parties
         if partie % 100 == 0:
