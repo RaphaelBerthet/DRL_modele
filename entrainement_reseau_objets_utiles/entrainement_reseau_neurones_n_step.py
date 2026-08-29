@@ -1,7 +1,7 @@
 import numpy as np
 from .adam_update import adam_update
 from .relu import relu, relu_derivative
-from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
+from .parametres import N_STEP, NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
 
 
 class Reseau_neurones:
@@ -95,8 +95,10 @@ class Reseau_neurones:
                     A2_target = relu(Z2_target)
                     Z3_target = A2_target @ self.W3_target.T + self.B3_target
                     best_actions = np.argmax(Z3_s2, axis=1)
-                    Q_target[non_terminal_mask] = (rewards_batch[non_terminal_mask]
-                        + gamma * Z3_target[non_terminal_mask, best_actions[non_terminal_mask]])
+                    gamma_n = gamma ** N_STEP  # à passer en paramètre ou stocker dans le sample lui-même
+
+                    Q_target[non_terminal_mask] = (rewards_batch[non_terminal_mask]  # = G déjà cumulé sur n pas
+                        + gamma_n * Z3_target[non_terminal_mask, best_actions[non_terminal_mask]])
                 Q_target[terminal_states_batch] = rewards_batch[terminal_states_batch]
 
                 # --- 3. Forward Pass pour Q (réseau principal) ---

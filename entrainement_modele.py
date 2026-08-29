@@ -7,6 +7,7 @@ import numpy as np
 
 def jouer_une_partie(reseau_neurones, p, partie):
     """Joue une partie complète et alimente le réseau en samples."""
+
     ## initialisation de la partie
     raise NotImplementedError("initialisation pas implementé")
 
