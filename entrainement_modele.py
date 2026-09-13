@@ -38,9 +38,11 @@ def entrainer(nb_parties: int=NB_PARTIES):
         p = p_debut - (p_debut - p_fin) * partie / nb_parties
         if partie % 100 == 0:
             print(f"progression : {partie * 100 / nb_parties} %")
+            reseau_neurones.export_reseau()
         jouer_une_partie(reseau_neurones, p, partie)
         reseau_neurones.entrainement_reseau(partie)
 
+    reseau_neurones.export_reseau()
     return reseau_neurones
 
 

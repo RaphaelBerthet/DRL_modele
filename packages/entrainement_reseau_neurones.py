@@ -1,7 +1,7 @@
 import numpy as np
 from .adam_update import adam_update
 from .relu import relu, relu_derivative
-from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
+from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
 from numpy.typing import NDArray
 
 
@@ -177,6 +177,6 @@ class Reseau_neurones:
                     self.B1_target, self.B2_target, self.B3_target = self.b1.copy(), self.b2.copy(), self.b3.copy()
 
 
-                if self.ct_majs_reseau % PERIODE_STOCKAGE_PC == 0:
-                    np.savez(self.nom_fichier, W1=self.w1, W2=self.w2, W3=self.w3, B1=self.b1, B2=self.b2, B3=self.b3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
-                    print(f"partie : {numero_partie}   Poids, biais exportés dans {self.nom_fichier}")
+    def export_reseau(self):
+        np.savez(self.nom_fichier, W1=self.w1, W2=self.w2, W3=self.w3, B1=self.b1, B2=self.b2, B3=self.b3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
+        print(f"Poids, biais exportés dans {self.nom_fichier}")
