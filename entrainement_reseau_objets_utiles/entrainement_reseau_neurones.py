@@ -2,6 +2,7 @@ import numpy as np
 from .adam_update import adam_update
 from .relu import relu, relu_derivative
 from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BATCHS, NB_ENTRAINEMENT_BATCH, gamma, learning_rate, ACTU_W_TARGET, PERIODE_STOCKAGE_PC, MAX_NORME_GRADIENT, DELTA_HUBER_LOSS
+from numpy.typing import NDArray
 
 
 class Reseau_neurones:
@@ -30,28 +31,28 @@ class Reseau_neurones:
             self.t_adam = int(data['t_adam'])
 
         except FileNotFoundError:
-            self.w1 = np.random.randn(self.NB_NEURONES_LAYER1, self.TAILLE_STATE) * np.sqrt(2 / self.TAILLE_STATE)  # He init pour ReLU
-            self.w2 = np.random.randn(self.NB_NEURONES_LAYER2, self.NB_NEURONES_LAYER1) * np.sqrt(2 / self.NB_NEURONES_LAYER1)
-            self.w3 = np.random.randn(self.NB_ACTIONS_POSSIBLES, self.NB_NEURONES_LAYER2) * np.sqrt(2 / self.NB_NEURONES_LAYER2)
-            self.b1 = np.zeros(self.NB_NEURONES_LAYER1, dtype=np.float64)
-            self.b2 = np.zeros(self.NB_NEURONES_LAYER2, dtype=np.float64)
-            self.b3 = np.zeros(self.NB_ACTIONS_POSSIBLES, dtype=np.float64)
-            self.mW1 = np.zeros_like(self.w1, dtype=np.float64); self.vW1 = np.zeros_like(self.w1, dtype=np.float64)
-            self.mW2 = np.zeros_like(self.w2, dtype=np.float64); self.vW2 = np.zeros_like(self.w2, dtype=np.float64)
-            self.mW3 = np.zeros_like(self.w3, dtype=np.float64); self.vW3 = np.zeros_like(self.w3, dtype=np.float64)
-            self.mB1 = np.zeros_like(self.b1, dtype=np.float64); self.vB1 = np.zeros_like(self.b1, dtype=np.float64)
-            self.mB2 = np.zeros_like(self.b2, dtype=np.float64); self.vB2 = np.zeros_like(self.b2, dtype=np.float64)
-            self.mB3 = np.zeros_like(self.b3, dtype=np.float64); self.vB3 = np.zeros_like(self.b3, dtype=np.float64)
+            self.w1 = (np.random.randn(self.NB_NEURONES_LAYER1, self.TAILLE_STATE) * np.sqrt(2 / self.TAILLE_STATE)).astype(np.float32)  # He init pour ReLU
+            self.w2 = (np.random.randn(self.NB_NEURONES_LAYER2, self.NB_NEURONES_LAYER1) * np.sqrt(2 / self.NB_NEURONES_LAYER1)).astype(np.float32)
+            self.w3 = (np.random.randn(self.NB_ACTIONS_POSSIBLES, self.NB_NEURONES_LAYER2) * np.sqrt(2 / self.NB_NEURONES_LAYER2)).astype(np.float32)
+            self.b1 = np.zeros(self.NB_NEURONES_LAYER1, dtype=np.float32)
+            self.b2 = np.zeros(self.NB_NEURONES_LAYER2, dtype=np.float32)
+            self.b3 = np.zeros(self.NB_ACTIONS_POSSIBLES, dtype=np.float32)
+            self.mW1 = np.zeros_like(self.w1, dtype=np.float32); self.vW1 = np.zeros_like(self.w1, dtype=np.float32)
+            self.mW2 = np.zeros_like(self.w2, dtype=np.float32); self.vW2 = np.zeros_like(self.w2, dtype=np.float32)
+            self.mW3 = np.zeros_like(self.w3, dtype=np.float32); self.vW3 = np.zeros_like(self.w3, dtype=np.float32)
+            self.mB1 = np.zeros_like(self.b1, dtype=np.float32); self.vB1 = np.zeros_like(self.b1, dtype=np.float32)
+            self.mB2 = np.zeros_like(self.b2, dtype=np.float32); self.vB2 = np.zeros_like(self.b2, dtype=np.float32)
+            self.mB3 = np.zeros_like(self.b3, dtype=np.float32); self.vB3 = np.zeros_like(self.b3, dtype=np.float32)
             self.t_adam = 0
 
-        self.samples = np.zeros((NB_SAMPLES_MAX, self.TAILLE_SAMPLE), dtype=np.float64)
+        self.samples = np.zeros((NB_SAMPLES_MAX, self.TAILLE_SAMPLE), dtype=np.float32)
         self.samples_count = 0  # Nombre réel de samples stockés
         self.head = 0  # Index circulaire (tête)
         self.W1_target, self.W2_target, self.W3_target = self.w1.copy(), self.w2.copy(), self.w3.copy()
         self.B1_target, self.B2_target, self.B3_target = self.b1.copy(), self.b2.copy(), self.b3.copy()
         self.ct_majs_reseau = 0
 
-    def calcul_couche_sortie(self, state: np.typing.NDArray[np.float64]) -> np.typing.NDArray[np.float64]:
+    def calcul_couche_sortie(self, state: NDArray[np.float32]) -> NDArray[np.float32]:
             A0 = np.array(state)
             Z1 = np.dot(self.w1, A0) + self.b1
             A1 = relu(Z1)
@@ -61,7 +62,7 @@ class Reseau_neurones:
             A3 = Z3
             return A3
 
-    def ajout_sample(self, sample: np.typing.NDArray[np.float64]):
+    def ajout_sample(self, sample: NDArray[np.float32]):
         self.samples[self.head] = sample
         self.head = (self.head + 1) % len(self.samples)
         if self.samples_count < len(self.samples):
@@ -81,7 +82,7 @@ class Reseau_neurones:
                 terminal_states_batch = selection[:, 2*self.TAILLE_STATE+2].astype(bool)
 
                 # --- 2. Forward Pass pour Q_target (réseau cible) ---
-                Q_target = np.zeros(TAILLE_BATCHS)
+                Q_target = np.zeros(TAILLE_BATCHS, dtype=np.float32)
                 non_terminal_mask = ~terminal_states_batch
                 Z1_s2 = states2_batch @ self.w1.T + self.b1
                 A1_s2 = relu(Z1_s2)
@@ -116,19 +117,19 @@ class Reseau_neurones:
                     DELTA_HUBER_LOSS * np.sign(erreur)
                 )
 
-                delta3 = np.zeros((TAILLE_BATCHS, self.NB_ACTIONS_POSSIBLES))
+                delta3 = np.zeros((TAILLE_BATCHS, self.NB_ACTIONS_POSSIBLES), dtype=np.float32)
                 delta3[np.arange(TAILLE_BATCHS), actions_batch - 1] = gradientaC
 
                 delta2 = (delta3 @ self.w3) * relu_derivative(Z2_s1)
                 delta1 = (delta2 @ self.w2) * relu_derivative(Z1_s1)
 
                 # Gradients pour W1, W2, B1, B2
-                dW1 = delta1.T @ states1_batch / TAILLE_BATCHS
-                dW2 = delta2.T @ A1_s1 / TAILLE_BATCHS
-                dW3 = delta3.T @ A2_s1 / TAILLE_BATCHS
-                dB1 = np.sum(delta1, axis=0) / TAILLE_BATCHS
-                dB2 = np.sum(delta2, axis=0) / TAILLE_BATCHS
-                dB3 = np.sum(delta3, axis=0) / TAILLE_BATCHS
+                dW1 = (delta1.T @ states1_batch / TAILLE_BATCHS).astype(np.float32, copy=False)
+                dW2 = (delta2.T @ A1_s1 / TAILLE_BATCHS).astype(np.float32, copy=False)
+                dW3 = (delta3.T @ A2_s1 / TAILLE_BATCHS).astype(np.float32, copy=False)
+                dB1 = np.sum(delta1, axis=0).astype(np.float32, copy=False) / TAILLE_BATCHS
+                dB2 = np.sum(delta2, axis=0).astype(np.float32, copy=False) / TAILLE_BATCHS
+                dB3 = np.sum(delta3, axis=0).astype(np.float32, copy=False) / TAILLE_BATCHS
                 norme = np.sqrt(
                     np.sum(dW1**2) +
                     np.sum(dW2**2) +

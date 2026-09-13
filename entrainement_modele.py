@@ -3,6 +3,7 @@ from entrainement_reseau_objets_utiles.entrainement_reseau_neurones import Resea
 from entrainement_reseau_objets_utiles.parametres import NB_NEURONES_LAYER1, NB_NEURONES_LAYER2, TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_PARTIES, p_debut, p_fin
 import random
 import numpy as np
+from numpy.typing import NDArray
 
 
 def jouer_une_partie(reseau_neurones: Reseau_neurones, p: float, partie: int):
@@ -21,7 +22,7 @@ def jouer_une_partie(reseau_neurones: Reseau_neurones, p: float, partie: int):
         reseau_neurones.ajout_sample(sample)
 
 
-def choisir_action(reseau_neurones: Reseau_neurones, state: np.typing.NDArray[np.float64], p: float) -> int:
+def choisir_action(reseau_neurones: Reseau_neurones, state: NDArray[np.float32], p: float) -> int:
     if random.random() <= p:
         return random.randint(1, NB_ACTIONS_POSSIBLES)
     return int(np.argmax(reseau_neurones.calcul_couche_sortie(state))) + 1
