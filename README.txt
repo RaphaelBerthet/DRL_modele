@@ -1,1 +1,0 @@
-Structure réutilisable pour l'entraînement de modèles de Deep Reinforcement Learning (DRL) avec divers ajouts aidant à la convergence du réseau de neurones (double DQN, huber loss...)

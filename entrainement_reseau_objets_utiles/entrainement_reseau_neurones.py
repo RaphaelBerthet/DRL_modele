@@ -5,7 +5,7 @@ from .parametres import NB_SAMPLES_MAX, NB_SAMPLES_DEBUT_ENTRAINEMENT, TAILLE_BA
 
 
 class Reseau_neurones:
-    def __init__(self, nom_fichier, TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_NEURONES_LAYER1, NB_NEURONES_LAYER2):
+    def __init__(self, nom_fichier: str, TAILLE_STATE: int, NB_ACTIONS_POSSIBLES: int, NB_NEURONES_LAYER1: int, NB_NEURONES_LAYER2: int):
         self.nom_fichier = nom_fichier
         self.NB_ACTIONS_POSSIBLES = NB_ACTIONS_POSSIBLES
         self.NB_NEURONES_LAYER1 = NB_NEURONES_LAYER1
@@ -15,12 +15,12 @@ class Reseau_neurones:
 
         try:
             data = np.load(nom_fichier)
-            self.W1 = data['W1']
-            self.W2 = data['W2']
-            self.W3 = data['W3']
-            self.B1 = data['B1']
-            self.B2 = data['B2']
-            self.B3 = data['B3']
+            self.w1 = data['W1']
+            self.w2 = data['W2']
+            self.w3 = data['W3']
+            self.b1 = data['B1']
+            self.b2 = data['B2']
+            self.b3 = data['B3']
             self.mW1 = data['mW1']; self.vW1 = data['vW1']
             self.mW2 = data['mW2']; self.vW2 = data['vW2']
             self.mW3 = data['mW3']; self.vW3 = data['vW3']
@@ -30,44 +30,44 @@ class Reseau_neurones:
             self.t_adam = int(data['t_adam'])
 
         except FileNotFoundError:
-            self.W1 = np.random.randn(self.NB_NEURONES_LAYER1, self.TAILLE_STATE) * np.sqrt(2 / self.TAILLE_STATE)  # He init pour ReLU
-            self.W2 = np.random.randn(self.NB_NEURONES_LAYER2, self.NB_NEURONES_LAYER1) * np.sqrt(2 / self.NB_NEURONES_LAYER1)
-            self.W3 = np.random.randn(self.NB_ACTIONS_POSSIBLES, self.NB_NEURONES_LAYER2) * np.sqrt(2 / self.NB_NEURONES_LAYER2)
-            self.B1 = np.zeros(self.NB_NEURONES_LAYER1)
-            self.B2 = np.zeros(self.NB_NEURONES_LAYER2)
-            self.B3 = np.zeros(self.NB_ACTIONS_POSSIBLES)
-            self.mW1 = np.zeros_like(self.W1); self.vW1 = np.zeros_like(self.W1)
-            self.mW2 = np.zeros_like(self.W2); self.vW2 = np.zeros_like(self.W2)
-            self.mW3 = np.zeros_like(self.W3); self.vW3 = np.zeros_like(self.W3)
-            self.mB1 = np.zeros_like(self.B1); self.vB1 = np.zeros_like(self.B1)
-            self.mB2 = np.zeros_like(self.B2); self.vB2 = np.zeros_like(self.B2)
-            self.mB3 = np.zeros_like(self.B3); self.vB3 = np.zeros_like(self.B3)
+            self.w1 = np.random.randn(self.NB_NEURONES_LAYER1, self.TAILLE_STATE) * np.sqrt(2 / self.TAILLE_STATE)  # He init pour ReLU
+            self.w2 = np.random.randn(self.NB_NEURONES_LAYER2, self.NB_NEURONES_LAYER1) * np.sqrt(2 / self.NB_NEURONES_LAYER1)
+            self.w3 = np.random.randn(self.NB_ACTIONS_POSSIBLES, self.NB_NEURONES_LAYER2) * np.sqrt(2 / self.NB_NEURONES_LAYER2)
+            self.b1 = np.zeros(self.NB_NEURONES_LAYER1, dtype=np.float64)
+            self.b2 = np.zeros(self.NB_NEURONES_LAYER2, dtype=np.float64)
+            self.b3 = np.zeros(self.NB_ACTIONS_POSSIBLES, dtype=np.float64)
+            self.mW1 = np.zeros_like(self.w1, dtype=np.float64); self.vW1 = np.zeros_like(self.w1, dtype=np.float64)
+            self.mW2 = np.zeros_like(self.w2, dtype=np.float64); self.vW2 = np.zeros_like(self.w2, dtype=np.float64)
+            self.mW3 = np.zeros_like(self.w3, dtype=np.float64); self.vW3 = np.zeros_like(self.w3, dtype=np.float64)
+            self.mB1 = np.zeros_like(self.b1, dtype=np.float64); self.vB1 = np.zeros_like(self.b1, dtype=np.float64)
+            self.mB2 = np.zeros_like(self.b2, dtype=np.float64); self.vB2 = np.zeros_like(self.b2, dtype=np.float64)
+            self.mB3 = np.zeros_like(self.b3, dtype=np.float64); self.vB3 = np.zeros_like(self.b3, dtype=np.float64)
             self.t_adam = 0
 
-        self.samples = np.zeros((NB_SAMPLES_MAX, self.TAILLE_SAMPLE), dtype=np.float32)  # 300+300+3
+        self.samples = np.zeros((NB_SAMPLES_MAX, self.TAILLE_SAMPLE), dtype=np.float64)
         self.samples_count = 0  # Nombre réel de samples stockés
         self.head = 0  # Index circulaire (tête)
-        self.W1_target, self.W2_target, self.W3_target = self.W1.copy(), self.W2.copy(), self.W3.copy()
-        self.B1_target, self.B2_target, self.B3_target = self.B1.copy(), self.B2.copy(), self.B3.copy()
+        self.W1_target, self.W2_target, self.W3_target = self.w1.copy(), self.w2.copy(), self.w3.copy()
+        self.B1_target, self.B2_target, self.B3_target = self.b1.copy(), self.b2.copy(), self.b3.copy()
         self.ct_majs_reseau = 0
 
-    def calcul_couche_sortie(self, state):
+    def calcul_couche_sortie(self, state: np.typing.NDArray[np.float64]) -> np.typing.NDArray[np.float64]:
             A0 = np.array(state)
-            Z1 = np.dot(self.W1, A0) + self.B1
+            Z1 = np.dot(self.w1, A0) + self.b1
             A1 = relu(Z1)
-            Z2 = np.dot(self.W2, A1) + self.B2
+            Z2 = np.dot(self.w2, A1) + self.b2
             A2 = relu(Z2)
-            Z3 = np.dot(self.W3, A2) + self.B3
+            Z3 = np.dot(self.w3, A2) + self.b3
             A3 = Z3
             return A3
 
-    def ajout_sample(self, sample):
+    def ajout_sample(self, sample: np.typing.NDArray[np.float64]):
         self.samples[self.head] = sample
         self.head = (self.head + 1) % len(self.samples)
         if self.samples_count < len(self.samples):
             self.samples_count += 1
 
-    def entrainement_reseau(self, numero_partie):
+    def entrainement_reseau(self, numero_partie: int):
         if self.samples_count >= NB_SAMPLES_DEBUT_ENTRAINEMENT:
             for _ in range(NB_ENTRAINEMENT_BATCH):
                 indices = np.random.choice(self.samples_count, TAILLE_BATCHS, replace=False)
@@ -83,11 +83,11 @@ class Reseau_neurones:
                 # --- 2. Forward Pass pour Q_target (réseau cible) ---
                 Q_target = np.zeros(TAILLE_BATCHS)
                 non_terminal_mask = ~terminal_states_batch
-                Z1_s2 = states2_batch @ self.W1.T + self.B1
+                Z1_s2 = states2_batch @ self.w1.T + self.b1
                 A1_s2 = relu(Z1_s2)
-                Z2_s2 = A1_s2 @ self.W2.T + self.B2
+                Z2_s2 = A1_s2 @ self.w2.T + self.b2
                 A2_s2 = relu(Z2_s2)
-                Z3_s2 = A2_s2 @ self.W3.T + self.B3
+                Z3_s2 = A2_s2 @ self.w3.T + self.b3
                 if np.any(non_terminal_mask):
                     Z1_target = states2_batch @ self.W1_target.T + self.B1_target
                     A1_target = relu(Z1_target)
@@ -100,11 +100,11 @@ class Reseau_neurones:
                 Q_target[terminal_states_batch] = rewards_batch[terminal_states_batch]
 
                 # --- 3. Forward Pass pour Q (réseau principal) ---
-                Z1_s1 = states1_batch @ self.W1.T + self.B1
+                Z1_s1 = states1_batch @ self.w1.T + self.b1
                 A1_s1 = relu(Z1_s1)
-                Z2_s1 = A1_s1 @ self.W2.T + self.B2
+                Z2_s1 = A1_s1 @ self.w2.T + self.b2
                 A2_s1 = relu(Z2_s1)
-                Z3_s1 = A2_s1 @ self.W3.T + self.B3
+                Z3_s1 = A2_s1 @ self.w3.T + self.b3
                 Q = Z3_s1[np.arange(TAILLE_BATCHS), actions_batch - 1]  # Extraction des Q pour chaque action
 
                 # --- 4. Backward Pass (vectorisé) ---
@@ -119,8 +119,8 @@ class Reseau_neurones:
                 delta3 = np.zeros((TAILLE_BATCHS, self.NB_ACTIONS_POSSIBLES))
                 delta3[np.arange(TAILLE_BATCHS), actions_batch - 1] = gradientaC
 
-                delta2 = (delta3 @ self.W3) * relu_derivative(Z2_s1)
-                delta1 = (delta2 @ self.W2) * relu_derivative(Z1_s1)
+                delta2 = (delta3 @ self.w3) * relu_derivative(Z2_s1)
+                delta1 = (delta2 @ self.w2) * relu_derivative(Z1_s1)
 
                 # Gradients pour W1, W2, B1, B2
                 dW1 = delta1.T @ states1_batch / TAILLE_BATCHS
@@ -162,20 +162,20 @@ class Reseau_neurones:
 
                 # --- 5. Mise à jour des poids ---
                 self.t_adam += 1
-                adam_update(self.W1, dW1, self.mW1, self.vW1, self.t_adam, learning_rate)
-                adam_update(self.W2, dW2, self.mW2, self.vW2, self.t_adam, learning_rate)
-                adam_update(self.W3, dW3, self.mW3, self.vW3, self.t_adam, learning_rate)
-                adam_update(self.B1, dB1, self.mB1, self.vB1, self.t_adam, learning_rate)
-                adam_update(self.B2, dB2, self.mB2, self.vB2, self.t_adam, learning_rate)
-                adam_update(self.B3, dB3, self.mB3, self.vB3, self.t_adam, learning_rate)
+                adam_update(self.w1, dW1, self.mW1, self.vW1, self.t_adam, learning_rate)
+                adam_update(self.w2, dW2, self.mW2, self.vW2, self.t_adam, learning_rate)
+                adam_update(self.w3, dW3, self.mW3, self.vW3, self.t_adam, learning_rate)
+                adam_update(self.b1, dB1, self.mB1, self.vB1, self.t_adam, learning_rate)
+                adam_update(self.b2, dB2, self.mB2, self.vB2, self.t_adam, learning_rate)
+                adam_update(self.b3, dB3, self.mB3, self.vB3, self.t_adam, learning_rate)
 
                 # Mise à jour du réseau cible
                 self.ct_majs_reseau += 1
                 if self.ct_majs_reseau % ACTU_W_TARGET == 0:
-                    self.W1_target, self.W2_target, self.W3_target = self.W1.copy(), self.W2.copy(), self.W3.copy()
-                    self.B1_target, self.B2_target, self.B3_target = self.B1.copy(), self.B2.copy(), self.B3.copy()
+                    self.W1_target, self.W2_target, self.W3_target = self.w1.copy(), self.w2.copy(), self.w3.copy()
+                    self.B1_target, self.B2_target, self.B3_target = self.b1.copy(), self.b2.copy(), self.b3.copy()
 
 
                 if self.ct_majs_reseau % PERIODE_STOCKAGE_PC == 0:
-                    np.savez(self.nom_fichier, W1=self.W1, W2=self.W2, W3=self.W3, B1=self.B1, B2=self.B2, B3=self.B3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
+                    np.savez(self.nom_fichier, W1=self.w1, W2=self.w2, W3=self.w3, B1=self.b1, B2=self.b2, B3=self.b3, mW1=self.mW1, mW2=self.mW2, mW3=self.mW3, mB1=self.mB1, mB2=self.mB2, mB3=self.mB3, vW1=self.vW1, vW2=self.vW2, vW3=self.vW3, vB1=self.vB1, vB2=self.vB2, vB3=self.vB3, t_adam=self.t_adam)
                     print(f"partie : {numero_partie}   Poids, biais exportés dans {self.nom_fichier}")
