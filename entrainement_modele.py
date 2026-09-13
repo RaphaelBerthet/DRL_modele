@@ -1,5 +1,5 @@
 from packages.build_state import build_state
-from packages.entrainement_reseau_neurones import Reseau_neurones
+from packages.reseau_neurones import Reseau_neurones
 from packages.parametres import NB_NEURONES_LAYER1, NB_NEURONES_LAYER2, TAILLE_STATE, NB_ACTIONS_POSSIBLES, NB_PARTIES, p_debut, p_fin
 import random
 import numpy as np
